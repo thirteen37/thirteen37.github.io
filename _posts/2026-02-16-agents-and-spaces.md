@@ -170,7 +170,7 @@ An agent that can create other agents and share content stores with them
 can express any coordination pattern (pipelines, fan-out, debates,
 priority queues) without the architecture prescribing any of them.
 
-## Agents in depth
+## Spawning and trust
 
 When an agent spawns another, it defines the trust boundary:
 
@@ -244,44 +244,22 @@ Pre-defined agent templates become seed content, not a locked-in
 registry. Fork "research-guidelines," tweak it for biotech, spawn a
 specialized agent. All at runtime, no code changes.
 
-## Spaces in depth
+## Inside a space
 
 ### Atoms
 
-The unit of content is an **atom**:
+The unit of content is an **atom**: a payload (`content`) with
+`metadata` (key-value pairs like status, owner, priority) and typed
+`references` to other atoms (`blocked_by`, `supersedes`, `supports`).
+Atoms are versioned and semantically searchable. The system stores and
+traverses references but doesn't interpret their semantics. That's the
+convention layer's job.
 
-| Field | Purpose |
-|-------|---------|
-| `content` | The payload: text, structured data, images, code |
-| `annotation` | Semantic description for search ("research on X") |
-| `metadata` | Arbitrary key-value pairs (status, owner, priority) |
-| `references` | Typed links to other atoms (`blocked_by`, `supersedes`) |
-| `version` | For progressive refinement |
-| `embedding` | Vector for semantic search |
-
-Atoms reference each other with typed, bidirectional links. A task has
-`blocked_by` references to other tasks. A research finding has
-`supports` or `contradicts` links to other findings. The system stores
-and traverses these links but doesn't interpret their semantics.
-That's the convention layer's job.
-
-### Operations
-
-A small set:
-
-| Operation | What it does |
-|-----------|-------------|
-| `put` | Add an atom |
-| `get` | Read a specific atom |
-| `update` | Refine an existing atom (new version) |
-| `deprecate` | Mark as superseded (excluded from search) |
-| `search` | Semantic + structured query |
-| `history` | Chronological operation log |
-
-Every mutation includes a **comment**, a semantic description like a
-git commit message. Comments are what gets published to subscribers, not
-atom content. An agent sees "added findings from 3 review sites" and
-decides whether to pull the full atom.
+Operations are the basics: `put`, `get`, `update`, `search`,
+`deprecate`, `history`. Every mutation includes a **comment**, a
+semantic description like a git commit message. Comments are what gets
+published to subscribers, not atom content. An agent sees "added
+findings from 3 review sites" and decides whether to pull the full atom.
 
 ### Permissions
 
@@ -312,32 +290,20 @@ and all blockers are done. This is what makes conventions practical.
 You can query a task list for available work without multiple round
 trips.
 
-### Binding model
+### How spaces reach agents
 
 Spaces connect to an agent's session in two ways. **Injected** spaces
-are always present in context: the system reads them and includes
-relevant content at every turn. Instructions work this way. Your
-behavioral guidance is an injected space, always in your head. Personal
-memories too, facts extracted from past conversations, surfaced when
-relevant. **Queried** spaces are the opposite: the agent actively
-decides what to pull in and when. Research findings, task lists,
-knowledge bases: the agent searches them on demand.
-
-The distinction matters because an agent's session is bounded (it's a
-context window) but spaces are unbounded. You can't inject everything.
-So the things that should always shape behavior (instructions, memories,
-convention descriptions) get injected. Everything else gets queried.
-
-### Convention descriptions
+are always in context: instructions, personal memories, convention
+descriptions. **Queried** spaces are searched on demand: task lists,
+knowledge bases, research findings. The distinction matters because
+sessions are bounded but spaces are unbounded. You can't inject
+everything.
 
 How does an agent _know_ a convention? Each space carries a description
-in its metadata, a short document explaining the schema and usage
-patterns. "This is a task list. Atoms have `status`, `owner`, and
-`priority` in metadata. Use `blocked_by` references for dependencies.
-To find available work, search for pending tasks with all blockers
-completed." When an agent connects to a space, that description gets
-injected into its context. The agent learns how to use the space from
-the space itself.
+in its metadata: "This is a task list. Atoms have `status`, `owner`,
+and `priority`. Use `blocked_by` references for dependencies." When an
+agent connects, that description gets injected. The agent learns how to
+use the space from the space itself.
 
 ## Content is coordination
 
@@ -435,24 +401,6 @@ context.
 Two coordinators talking through a space, using the same operations as
 everything else.
 
-### "Research this while I keep working"
-
-You're mid-conversation about your project. You ask: "Can you research
-how Postgres handles partial indexes? I'll keep working on the schema."
-
-1. User-agent spawns a **research agent** with web tools and a shared
-   **findings space**, but no access to your chat space or private
-   files
-2. Research agent fans out: sub-researchers for docs, blogs, Stack
-   Overflow. Each writes to the shared space
-3. You keep chatting. User-agent handles your schema questions,
-   unblocked
-4. Research agent synthesizes, writes a summary, signals completion
-5. User-agent presents the results in your chat
-
-Research in parallel. Research agents never saw your chat history. Trust
-narrowed correctly. Results arrived through spaces.
-
 ## Conventions
 
 I mentioned eight conventions so far. Here they are:
@@ -470,69 +418,6 @@ I mentioned eight conventions so far. Here they are:
 
 New conventions emerge by writing new descriptions, not new code.
 
-### What task lists alone can do
-
-This surprised me. The task list convention alone (atoms with
-`status`/`owner`/`priority` metadata and `blocked_by` references) can
-express most coordination architectures:
-
-- **Pipeline**: each task `blocked_by` the previous
-- **Fan-out/fan-in**: one setup task, N parallel tasks, one synthesis
-  task blocked by all N
-- **Iterative refinement**: draft → review → revise, looping until
-  quality is sufficient
-- **DAG**: arbitrary dependency graphs, maximum parallelism emerges
-  naturally
-- **Speculative execution**: multiple approaches race; a selection task
-  picks the winner
-
-Same atoms, same metadata, same references. The coordination pattern is
-a convention taught via instructions.
-
-<pre class="mermaid">
-graph LR
-    subgraph "Pipeline"
-        P1["Task A"] -->|blocked_by| P2["Task B"] -->|blocked_by| P3["Task C"]
-    end
-
-    style P1 fill:#6b8cae,color:#fff
-    style P2 fill:#6b8cae,color:#fff
-    style P3 fill:#6b8cae,color:#fff
-</pre>
-
-<pre class="mermaid">
-graph TD
-    subgraph "Fan-out / Fan-in"
-        F0["Setup"] --> F1["Worker 1"]
-        F0 --> F2["Worker 2"]
-        F0 --> F3["Worker 3"]
-        F1 --> F4["Synthesize"]
-        F2 --> F4
-        F3 --> F4
-    end
-
-    style F0 fill:#4a6fa5,color:#fff
-    style F1 fill:#6b8cae,color:#fff
-    style F2 fill:#6b8cae,color:#fff
-    style F3 fill:#6b8cae,color:#fff
-    style F4 fill:#4a6fa5,color:#fff
-</pre>
-
-<pre class="mermaid">
-graph LR
-    subgraph "Iterative Refinement"
-        D["Draft"] --> R["Review"]
-        R -->|"quality insufficient"| Rev["Revise"]
-        Rev --> R
-        R -->|"quality sufficient"| Done["Accept"]
-    end
-
-    style D fill:#6b8cae,color:#fff
-    style R fill:#e8d44d,color:#333
-    style Rev fill:#6b8cae,color:#fff
-    style Done fill:#5a9e6f,color:#fff
-</pre>
-
 ## Code as the interaction model
 
 Most agent frameworks give agents a fixed set of named tools like
@@ -547,58 +432,19 @@ keep the codebase small enough that the agent can rewrite its own tools.
 But there's a more general version of the same insight: let agents write
 code as their primary way of acting.
 
-### CodeAct
-
-[Wang et al. (2024)](https://arxiv.org/abs/2402.01030) showed that
-LLM agents expressing actions as executable Python code achieve up to
-20% higher success rates on complex tasks compared to structured tool
-calls. The reason: code naturally handles loops, conditionals, variable
-binding, composition. One code action does what five sequential tool
-calls struggle with.
-
-This is now
-[production-grade](https://huggingface.co/blog/smolagents). Hugging
-Face's [smolagents](https://github.com/huggingface/smolagents) makes
-code agents the default. Agents write Python that calls tools directly.
-State management, error handling, composition: it all happens in code,
-not framework plumbing.
-
-### Recursive Language Models
-
-RLMs ([Zhang et al., 2025](https://arxiv.org/abs/2512.24601)) take
-this further. CodeAct lets agents _act_ in code. RLMs let agents
-_think_ in code. Context is stored in an external environment (a
-persistent Python REPL) and the LLM writes code to programmatically
-inspect, decompose, and recursively process it. The LLM manages its own
-context, scaling to
-[10M+ tokens without degradation](https://www.primeintellect.ai/blog/rlm).
-
-This has been described as
-[the paradigm of 2026](https://www.primeintellect.ai/blog/rlm):
-teaching models to manage context end-to-end through reinforcement
-learning.
-
-### Spaces are the environment
+[CodeAct](https://arxiv.org/abs/2402.01030) (Wang et al., 2024) showed
+that agents expressing actions as executable Python achieve up to 20%
+higher success rates than structured tool calls. Hugging Face's
+[smolagents](https://github.com/huggingface/smolagents) makes this
+production-grade. [RLMs](https://arxiv.org/abs/2512.24601) (Zhang et
+al., 2025) take it further: agents _think_ in code, managing their own
+context programmatically and
+[scaling to 10M+ tokens](https://www.primeintellect.ai/blog/rlm).
 
 **Spaces are the external environment, and code is how agents interact
-with them.**
-
-Instead of building specialized tools for every coordination pattern,
-give agents a `space` capability object in a sandboxed executor.
-Convention descriptions include code patterns, recipes for common
-operations. Agents adapt and execute them:
-
-```python
-# Find and claim the next available task
-tasks = space.search(metadata={"status": "pending"})
-for task in tasks:
-    blockers = space.references(task.id, relation="blocked_by")
-    if all(b.metadata["status"] == "completed" for b in blockers):
-        space.update(task.id, metadata={
-            "status": "in_progress", "owner": "me"
-        })
-        break
-```
+with them.** Give agents a `space` capability object in a sandboxed
+executor. Convention descriptions include code recipes. Agents adapt
+and execute them:
 
 ```python
 # Fan-out research with dynamic decomposition
@@ -614,44 +460,26 @@ for segment in segments:
     )
 ```
 
-New conventions don't require new tools, only new code recipes. Direct
-tools (`get`, `put`, `search`) are still there for simple stuff, but
-they're an optimization, not the model.
-
-This is where the Bitter Lesson really bites. A framework with fixed
-tools is limited by what the designers anticipated. A framework with
-code and an environment is limited by what the agents can express. That
-ceiling rises with every model generation.
-
-Recursive spawning completes the picture. An agent writes code to spawn
-sub-agents, collect results in a shared space, synthesize. RLM-style
-recursion through coordination primitives. The agent decomposes its own
-problem because the building blocks make it natural, not because a
-framework told it to.
+New conventions don't require new tools, only new code recipes. A
+framework with fixed tools is limited by what the designers anticipated.
+A framework with code and an environment is limited by what the agents
+can express. That ceiling rises with every model generation.
 
 ## Where this goes
 
 The architecture is designed but not yet implemented. Some scenarios:
 
-A morning briefing, assembled overnight. Cron-agent fires at 6am.
-Spawns research agents for your calendar, news, overnight emails.
-Each writes to a shared briefing space. Synthesis agent compiles. When
-you open the chat at 8am, it's waiting. Assembled by agents
-coordinating through spaces while you slept.
-
-Or continuous learning across channels. You mention in chat that you
-prefer Python over TypeScript. Memory pipeline writes this to your
-personal memory space. Later, an email agent drafts a code snippet and
-queries the same memory space. Uses Python. No configuration needed; the
-preference propagated through shared content.
+A morning briefing, assembled overnight. Cron-agent fires at 6am,
+spawns research agents for your calendar, news, overnight emails. Each
+writes to a shared briefing space. Synthesis agent compiles. When you
+open the chat at 8am, it's waiting.
 
 Or adaptive task decomposition. You ask for a competitive analysis.
 The coordinator spawns one research agent, reads the initial findings,
-realizes the landscape is broader than expected, spawns three more for
-specific segments, creates a synthesis task blocked on all of them. The
-task graph grew dynamically based on what the first agent found. Next
-time, same request might need one researcher. The architecture doesn't
-care.
+realizes the landscape is broader than expected, spawns three more.
+The task graph grew dynamically based on what the first agent found.
+Next time, same request might need one researcher. The architecture
+doesn't care.
 
 Correctness is almost trivial here. The interesting part starts when
 you let agents loose on it.
@@ -666,5 +494,3 @@ you let agents loose on it.
 4. Prime Intellect. (2026). [The Paradigm of 2026](https://www.primeintellect.ai/blog/rlm).
 5. Hugging Face. (2025). [Introducing smolagents](https://huggingface.co/blog/smolagents).
 6. Erman, L.D. et al. (1980). The Hearsay-II Speech-Understanding System: Integrating Knowledge to Resolve Uncertainty. _ACM Computing Surveys_, 12(2).
-7. Minsky, M. (1986). _The Society of Mind_. Simon & Schuster.
-8. Hewitt, C. et al. (1973). A Universal Modular ACTOR Formalism for Artificial Intelligence. _IJCAI_.
