@@ -22,7 +22,7 @@ you're chatting. Run a scheduled task overnight and have the results
 ready in the morning. One agent, one context window, one turn at a
 time. It doesn't scale.
 
-So, multi-agent. Obviously. But the more I looked at existing
+So, multi-agent, obviously, but the more I looked at existing
 frameworks, the less I liked what I saw.
 
 ## What's broken
@@ -81,8 +81,8 @@ is the executor, they communicate through this protocol") as if we
 know what optimal coordination looks like. We don't. LLMs are improving
 fast enough that any fixed topology will be obsolete within a year.
 
-So I went the other direction. Minimal concepts. Zero prescribed
-workflows. Coordination that emerges from how agents use the building
+So I went the other direction: minimal concepts, zero prescribed
+workflows, coordination that emerges from how agents use the building
 blocks.
 
 ## The building blocks
@@ -185,8 +185,8 @@ spawn(
 )
 ```
 
-The spawner says what the new agent can access and gives it a task.
-No role assignment, no topology declaration, no workflow step number.
+The spawner says what the new agent can access and gives it a task,
+with no role assignment, topology declaration, or workflow step number.
 
 ### Trust narrows monotonically
 
@@ -230,7 +230,7 @@ evaluates whether the agent's task justifies the access and grants or
 denies. Privileges widen only through an explicit grant from an agent
 with sufficient permission, like a manager approving an access request.
 
-No special permission API needed. Agents communicating through a space.
+No special permission API needed, just agents communicating through a space.
 
 ### Identity is not a type
 
@@ -271,7 +271,7 @@ Four levels, each implying the ones above it
 - **write**: Full mutation (update, replace, refine)
 - **grant**: Share access with other agents
 
-New spaces start private. Only `grant` holders can share them.
+New spaces start private, and only `grant` holders can share them.
 
 ### Search
 
@@ -330,8 +330,8 @@ graph LR
 
 When a research agent writes findings to a shared space, that _is_ the
 communication. Other agents subscribed to the space see the update and
-react. No separate "hey, I'm done" message. The distinction between
-"communication" and "work product" collapses.
+react. No separate "hey, I'm done" message needed, because the distinction
+between "communication" and "work product" collapses.
 
 Every space change triggers notifications to subscribers. When one
 arrives, the system runs an LLM turn. The agent sees the comment and
@@ -467,7 +467,7 @@ can express. That ceiling rises with every model generation.
 
 ## Where this goes
 
-The architecture is designed but not yet implemented. Some scenarios:
+The architecture is designed but not yet implemented, though a few scenarios show what it enables:
 
 A morning briefing, assembled overnight. Cron-agent fires at 6am,
 spawns research agents for your calendar, news, overnight emails. Each
