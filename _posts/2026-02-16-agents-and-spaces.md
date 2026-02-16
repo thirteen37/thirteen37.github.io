@@ -148,8 +148,8 @@ graph TB
     end
 
     subgraph CORE["Core"]
-        A["Agents<br/><small>LLM + instructions + tools +<br/>session + connected spaces</small>"]
         S["Spaces<br/><small>shared content + permissions +<br/>search + subscriptions</small>"]
+        A["Agents<br/><small>LLM + instructions + tools +<br/>session + connected spaces</small>"]
     end
 
     A -->|"spawn"| A
