@@ -123,28 +123,54 @@ blockquote {
 
 
 /**
+ * Tables
+ */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: $spacing-unit / 2;
+    font-size: $small-font-size;
+
+    th, td {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        text-align: left;
+    }
+
+    th {
+        background-color: #f0f0f0;
+        font-weight: 600;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f8f8f8;
+    }
+}
+
+
+
+/**
  * Code formatting
  */
 pre,
 code {
     font-size: 15px;
-    border: 1px solid $grey-color-light;
     border-radius: 3px;
-    background-color: #eef;
 }
 
 code {
     padding: 1px 5px;
+    background-color: #f0f0f0;
 }
 
 pre {
     padding: 8px 12px;
-    overflow-x: scroll;
+    overflow-x: auto;
 
     > code {
-        border: 0;
         padding-right: 0;
         padding-left: 0;
+        background-color: transparent;
     }
 }
 
