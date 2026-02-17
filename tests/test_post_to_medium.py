@@ -68,3 +68,33 @@ def test_render_table_returns_png_bytes():
     png = post_to_medium.render_block({"type": "table", "source": source})
     assert isinstance(png, bytes)
     assert png[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_upload_image_returns_url(mocker):
+    fake_response = mocker.MagicMock()
+    fake_response.raise_for_status = mocker.MagicMock()
+    fake_response.json.return_value = {"data": {"url": "https://cdn-images-1.medium.com/test.png"}}
+
+    mock_post = mocker.patch("httpx.post", return_value=fake_response)
+
+    url = post_to_medium.upload_image(b"\x89PNG fake", token="tok_abc")
+
+    assert url == "https://cdn-images-1.medium.com/test.png"
+    call_kwargs = mock_post.call_args
+    assert "Authorization" in call_kwargs.kwargs["headers"]
+    assert call_kwargs.kwargs["headers"]["Authorization"] == "Bearer tok_abc"
+
+
+def test_upload_image_raises_on_http_error(mocker):
+    import httpx
+    fake_response = mocker.MagicMock()
+    fake_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+        "400", request=mocker.MagicMock(), response=fake_response
+    )
+    mocker.patch("httpx.post", return_value=fake_response)
+
+    try:
+        post_to_medium.upload_image(b"\x89PNG fake", token="bad")
+        assert False, "Should have raised"
+    except httpx.HTTPStatusError:
+        pass

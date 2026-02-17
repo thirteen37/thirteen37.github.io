@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 
 import frontmatter
+import httpx
 
 
 def parse_post(filepath: Path) -> tuple[dict, str]:
@@ -141,6 +142,20 @@ def render_block(block: dict) -> bytes:
         png = element.screenshot(type="png")
         browser.close()
         return png
+
+
+def upload_image(png_bytes: bytes, token: str) -> str:
+    """Upload a PNG to Medium's image API and return the hosted URL."""
+    resp = httpx.post(
+        "https://api.medium.com/v1/images",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+        },
+        files={"image": ("diagram.png", png_bytes, "image/png")},
+    )
+    resp.raise_for_status()
+    return resp.json()["data"]["url"]
 
 
 if __name__ == "__main__":
