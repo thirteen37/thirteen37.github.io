@@ -166,6 +166,32 @@ def reassemble(body: str, blocks: list[dict], urls: list[str]) -> str:
     return body
 
 
+def create_draft(title: str, body: str, tags: list[str], token: str) -> str:
+    """Create a Medium draft post and return its URL."""
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
+    me = httpx.get("https://api.medium.com/v1/me", headers=headers)
+    me.raise_for_status()
+    author_id = me.json()["data"]["id"]
+
+    resp = httpx.post(
+        f"https://api.medium.com/v1/users/{author_id}/posts",
+        headers=headers,
+        json={
+            "title": title,
+            "contentFormat": "markdown",
+            "content": body,
+            "tags": tags[:5],  # Medium limit
+            "publishStatus": "draft",
+        },
+    )
+    resp.raise_for_status()
+    return resp.json()["data"]["url"]
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: post_to_medium.py <path-to-post.md>")

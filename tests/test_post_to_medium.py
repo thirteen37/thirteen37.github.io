@@ -115,3 +115,52 @@ def test_reassemble_preserves_text():
     result = post_to_medium.reassemble(body, [{"type": "mermaid"}], ["https://x.com/a.png"])
     assert "Before." in result
     assert "After." in result
+
+
+def test_create_draft_returns_url(mocker):
+    me_resp = mocker.MagicMock()
+    me_resp.raise_for_status = mocker.MagicMock()
+    me_resp.json.return_value = {"data": {"id": "user123"}}
+
+    post_resp = mocker.MagicMock()
+    post_resp.raise_for_status = mocker.MagicMock()
+    post_resp.json.return_value = {"data": {"url": "https://medium.com/@user/test-abc123"}}
+
+    mock_get = mocker.patch("httpx.get", return_value=me_resp)
+    mock_post = mocker.patch("httpx.post", return_value=post_resp)
+
+    url = post_to_medium.create_draft(
+        title="Test Post",
+        body="Hello world",
+        tags=["ai", "test"],
+        token="tok_abc",
+    )
+
+    assert url == "https://medium.com/@user/test-abc123"
+
+    post_call = mock_post.call_args
+    payload = post_call.kwargs["json"]
+    assert payload["title"] == "Test Post"
+    assert payload["contentFormat"] == "markdown"
+    assert payload["publishStatus"] == "draft"
+    assert payload["tags"] == ["ai", "test"]
+
+
+def test_create_draft_truncates_tags_to_five(mocker):
+    me_resp = mocker.MagicMock()
+    me_resp.raise_for_status = mocker.MagicMock()
+    me_resp.json.return_value = {"data": {"id": "user123"}}
+
+    post_resp = mocker.MagicMock()
+    post_resp.raise_for_status = mocker.MagicMock()
+    post_resp.json.return_value = {"data": {"url": "https://medium.com/@user/test"}}
+
+    mocker.patch("httpx.get", return_value=me_resp)
+    mock_post = mocker.patch("httpx.post", return_value=post_resp)
+
+    post_to_medium.create_draft(
+        title="T", body="B", tags=["a", "b", "c", "d", "e", "f"], token="tok"
+    )
+
+    payload = mock_post.call_args.kwargs["json"]
+    assert len(payload["tags"]) == 5
