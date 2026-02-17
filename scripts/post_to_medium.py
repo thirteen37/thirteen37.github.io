@@ -33,7 +33,7 @@ def extract_blocks(body: str) -> tuple[str, list[dict]]:
     """
     blocks = []
 
-    # Extract Mermaid blocks: <pre class="mermaid">...</pre>
+    # Extract Mermaid blocks first (raw HTML, must come before table scan)
     mermaid_pattern = re.compile(
         r'<pre class="mermaid">\n(.*?)\n</pre>',
         re.DOTALL,
@@ -45,6 +45,19 @@ def extract_blocks(body: str) -> tuple[str, list[dict]]:
         return f"__BLOCK_{idx}__"
 
     body = mermaid_pattern.sub(replace_mermaid, body)
+
+    # Extract GFM tables: header row | separator row (|---|) | one or more data rows
+    table_pattern = re.compile(
+        r'((?:\|[^\n]+\|\n)+\|[-| :]+\|\n(?:\|[^\n]+\|\n)*)',
+        re.MULTILINE,
+    )
+
+    def replace_table(m):
+        idx = len(blocks)
+        blocks.append({"type": "table", "source": m.group(1).rstrip("\n")})
+        return f"__BLOCK_{idx}__"
+
+    body = table_pattern.sub(replace_table, body)
     return body, blocks
 
 

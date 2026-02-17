@@ -34,3 +34,23 @@ def test_extract_mermaid_preserves_surrounding_text():
     result, blocks = post_to_medium.extract_blocks(body)
     assert "Before." in result
     assert "After." in result
+
+
+def test_extract_table_block():
+    body = "Before.\n\n| Name | Value |\n|------|-------|\n| Foo  | 1     |\n\nAfter."
+    result, blocks = post_to_medium.extract_blocks(body)
+    assert len(blocks) == 1
+    assert blocks[0]["type"] == "table"
+    assert "| Foo" in blocks[0]["source"]
+    assert "__BLOCK_0__" in result
+    assert "|---" not in result
+
+
+def test_extract_multiple_blocks():
+    _, blocks = post_to_medium.extract_blocks(
+        Path(__file__).parent.joinpath("fixtures/sample_post.md").read_text().split("---\n", 2)[2]
+    )
+    # fixture has 1 table and 1 mermaid block
+    assert len(blocks) == 2
+    types = {b["type"] for b in blocks}
+    assert types == {"mermaid", "table"}
