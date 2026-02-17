@@ -158,6 +158,14 @@ def upload_image(png_bytes: bytes, token: str) -> str:
     return resp.json()["data"]["url"]
 
 
+def reassemble(body: str, blocks: list[dict], urls: list[str]) -> str:
+    """Replace placeholder tokens with Medium image markdown."""
+    for i, (block, url) in enumerate(zip(blocks, urls)):
+        alt = "mermaid diagram" if block["type"] == "mermaid" else "table"
+        body = body.replace(f"__BLOCK_{i}__", f"![{alt}]({url})")
+    return body
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: post_to_medium.py <path-to-post.md>")

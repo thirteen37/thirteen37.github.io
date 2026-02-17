@@ -98,3 +98,20 @@ def test_upload_image_raises_on_http_error(mocker):
         assert False, "Should have raised"
     except httpx.HTTPStatusError:
         pass
+
+
+def test_reassemble_replaces_placeholders():
+    body = "Before.\n\n__BLOCK_0__\n\nMiddle.\n\n__BLOCK_1__\n\nAfter."
+    urls = ["https://cdn.medium.com/img0.png", "https://cdn.medium.com/img1.png"]
+    blocks = [{"type": "mermaid"}, {"type": "table"}]
+    result = post_to_medium.reassemble(body, blocks, urls)
+    assert "![mermaid diagram](https://cdn.medium.com/img0.png)" in result
+    assert "![table](https://cdn.medium.com/img1.png)" in result
+    assert "__BLOCK_" not in result
+
+
+def test_reassemble_preserves_text():
+    body = "Before.\n\n__BLOCK_0__\n\nAfter."
+    result = post_to_medium.reassemble(body, [{"type": "mermaid"}], ["https://x.com/a.png"])
+    assert "Before." in result
+    assert "After." in result
