@@ -192,15 +192,20 @@ def create_draft(title: str, body: str, tags: list[str], token: str) -> str:
     return resp.json()["data"]["url"]
 
 
-def main(post_path: Path) -> None:
+def main(post_path: Path, export_dir: Path | None = None) -> None:
     from dotenv import load_dotenv
 
     load_dotenv()
-    token = os.environ.get("MEDIUM_TOKEN")
-    if not token:
-        print("Error: MEDIUM_TOKEN environment variable not set.", file=sys.stderr)
-        print("Get a token at: https://medium.com/me/settings (Integration tokens)", file=sys.stderr)
-        sys.exit(1)
+
+    if export_dir is None:
+        token = os.environ.get("MEDIUM_TOKEN")
+        if not token:
+            print("Error: MEDIUM_TOKEN environment variable not set.", file=sys.stderr)
+            print("Get a token at: https://medium.com/me/settings (Integration tokens)", file=sys.stderr)
+            sys.exit(1)
+    else:
+        export_dir.mkdir(parents=True, exist_ok=True)
+        token = None
 
     print(f"Parsing {post_path}...")
     meta, body = parse_post(post_path)
@@ -209,20 +214,31 @@ def main(post_path: Path) -> None:
     body, blocks = extract_blocks(body)
 
     if blocks:
-        print(f"Rendering and uploading {len(blocks)} block(s)...")
-    urls = []
+        action = f"Rendering and exporting {len(blocks)} block(s) to {export_dir}..." if export_dir else f"Rendering and uploading {len(blocks)} block(s)..."
+        print(action)
+    refs = []
     for i, block in enumerate(blocks):
         print(f"  [{i+1}/{len(blocks)}] Rendering {block['type']}...")
         try:
             png = render_block(block)
-            url = upload_image(png, token=token)
-            urls.append(url)
-            print(f"  [{i+1}/{len(blocks)}] Uploaded: {url}")
+            if export_dir:
+                out_path = export_dir / f"block_{i}_{block['type']}.png"
+                out_path.write_bytes(png)
+                refs.append(str(out_path))
+                print(f"  [{i+1}/{len(blocks)}] Saved: {out_path}")
+            else:
+                url = upload_image(png, token=token)
+                refs.append(url)
+                print(f"  [{i+1}/{len(blocks)}] Uploaded: {url}")
         except Exception as e:
-            print(f"  [{i+1}/{len(blocks)}] WARNING: failed to render/upload ({e}), leaving placeholder")
-            urls.append(f"__RENDER_FAILED_{i}__")
+            print(f"  [{i+1}/{len(blocks)}] WARNING: failed to render ({e}), leaving placeholder")
+            refs.append(f"__RENDER_FAILED_{i}__")
 
-    body = reassemble(body, blocks, urls)
+    if export_dir:
+        print(f"\nDone. {len(blocks)} image(s) exported to {export_dir}/")
+        return
+
+    body = reassemble(body, blocks, refs)
 
     print("Creating Medium draft...")
     tags = meta.get("tags", [])
@@ -239,7 +255,15 @@ def main(post_path: Path) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: post_to_medium.py <path-to-post.md>")
-        sys.exit(1)
-    main(Path(sys.argv[1]))
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Cross-post a Jekyll post to Medium.")
+    parser.add_argument("post", type=Path, help="Path to the Jekyll markdown post")
+    parser.add_argument(
+        "--export-images",
+        metavar="DIR",
+        type=Path,
+        help="Render diagrams and tables as PNGs into DIR instead of posting to Medium",
+    )
+    args = parser.parse_args()
+    main(args.post, export_dir=args.export_images)
