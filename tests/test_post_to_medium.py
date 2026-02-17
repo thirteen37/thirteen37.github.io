@@ -54,3 +54,17 @@ def test_extract_multiple_blocks():
     assert len(blocks) == 2
     types = {b["type"] for b in blocks}
     assert types == {"mermaid", "table"}
+
+
+def test_render_mermaid_returns_png_bytes():
+    source = "graph TD\n    A[\"Alpha\"] --> B[\"Beta\"]"
+    png = post_to_medium.render_block({"type": "mermaid", "source": source})
+    assert isinstance(png, bytes)
+    assert png[:8] == b"\x89PNG\r\n\x1a\n"  # PNG magic bytes
+
+
+def test_render_table_returns_png_bytes():
+    source = "| Name | Value |\n|------|-------|\n| Foo  | 1     |"
+    png = post_to_medium.render_block({"type": "table", "source": source})
+    assert isinstance(png, bytes)
+    assert png[:8] == b"\x89PNG\r\n\x1a\n"
