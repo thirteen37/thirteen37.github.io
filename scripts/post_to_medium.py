@@ -192,8 +192,54 @@ def create_draft(title: str, body: str, tags: list[str], token: str) -> str:
     return resp.json()["data"]["url"]
 
 
+def main(post_path: Path) -> None:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    token = os.environ.get("MEDIUM_TOKEN")
+    if not token:
+        print("Error: MEDIUM_TOKEN environment variable not set.", file=sys.stderr)
+        print("Get a token at: https://medium.com/me/settings (Integration tokens)", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Parsing {post_path}...")
+    meta, body = parse_post(post_path)
+
+    print("Extracting diagram and table blocks...")
+    body, blocks = extract_blocks(body)
+
+    if blocks:
+        print(f"Rendering and uploading {len(blocks)} block(s)...")
+    urls = []
+    for i, block in enumerate(blocks):
+        print(f"  [{i+1}/{len(blocks)}] Rendering {block['type']}...")
+        try:
+            png = render_block(block)
+            url = upload_image(png, token=token)
+            urls.append(url)
+            print(f"  [{i+1}/{len(blocks)}] Uploaded: {url}")
+        except Exception as e:
+            print(f"  [{i+1}/{len(blocks)}] WARNING: failed to render/upload ({e}), leaving placeholder")
+            urls.append(f"__RENDER_FAILED_{i}__")
+
+    body = reassemble(body, blocks, urls)
+
+    print("Creating Medium draft...")
+    tags = meta.get("tags", [])
+    if isinstance(tags, str):
+        tags = [tags]
+    draft_url = create_draft(
+        title=meta["title"],
+        body=body,
+        tags=tags,
+        token=token,
+    )
+
+    print(f"\nDraft created: {draft_url}")
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: post_to_medium.py <path-to-post.md>")
         sys.exit(1)
-    print("Not yet implemented")
+    main(Path(sys.argv[1]))
