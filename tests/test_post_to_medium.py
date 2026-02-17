@@ -47,9 +47,8 @@ def test_extract_table_block():
 
 
 def test_extract_multiple_blocks():
-    _, blocks = post_to_medium.extract_blocks(
-        Path(__file__).parent.joinpath("fixtures/sample_post.md").read_text().split("---\n", 2)[2]
-    )
+    _, body = post_to_medium.parse_post(FIXTURE)
+    _, blocks = post_to_medium.extract_blocks(body)
     # fixture has 1 table and 1 mermaid block
     assert len(blocks) == 2
     types = {b["type"] for b in blocks}

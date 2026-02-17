@@ -47,9 +47,10 @@ def extract_blocks(body: str) -> tuple[str, list[dict]]:
 
     body = mermaid_pattern.sub(replace_mermaid, body)
 
-    # Extract GFM tables: header row | separator row (|---|) | one or more data rows
+    # Extract GFM tables: header row | separator row (|---|) | one or more data rows.
+    # The final data row may have no trailing newline (e.g. table at end of file).
     table_pattern = re.compile(
-        r'((?:\|[^\n]+\|\n)+\|[-| :]+\|\n(?:\|[^\n]+\|\n)*)',
+        r'((?:\|[^\n]+\|\n)+\|[-| :]+\|\n(?:\|[^\n]+\|\n)*(?:\|[^\n]+\|)?)',
         re.MULTILINE,
     )
 
@@ -126,22 +127,22 @@ def render_block(block: dict) -> bytes:
     from playwright.sync_api import sync_playwright
 
     with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page(device_scale_factor=2)
+        with p.chromium.launch() as browser:
+            page = browser.new_page(device_scale_factor=2)
 
-        if block["type"] == "mermaid":
-            html = _MERMAID_HTML.format(css=_BASE_CSS, source=block["source"])
-            page.set_content(html, wait_until="networkidle")
-            element = page.locator(".mermaid svg").first
-        else:
-            table_html = _md_table_to_html(block["source"])
-            html = _TABLE_HTML.format(css=_BASE_CSS, table_html=table_html)
-            page.set_content(html, wait_until="load")
-            element = page.locator("table").first
+            if block["type"] == "mermaid":
+                html = _MERMAID_HTML.format(css=_BASE_CSS, source=block["source"])
+                page.set_content(html, wait_until="networkidle")
+                # Wait for Mermaid JS to finish injecting the SVG into the DOM
+                element = page.locator(".mermaid svg").first
+                element.wait_for(state="visible")
+            else:
+                table_html = _md_table_to_html(block["source"])
+                html = _TABLE_HTML.format(css=_BASE_CSS, table_html=table_html)
+                page.set_content(html, wait_until="load")
+                element = page.locator("table").first
 
-        png = element.screenshot(type="png")
-        browser.close()
-        return png
+            return element.screenshot(type="png")
 
 
 def upload_image(png_bytes: bytes, token: str) -> str:
@@ -168,18 +169,17 @@ def reassemble(body: str, blocks: list[dict], urls: list[str]) -> str:
 
 def create_draft(title: str, body: str, tags: list[str], token: str) -> str:
     """Create a Medium draft post and return its URL."""
-    headers = {
+    auth_headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/json",
-        "Content-Type": "application/json",
     }
-    me = httpx.get("https://api.medium.com/v1/me", headers=headers)
+    me = httpx.get("https://api.medium.com/v1/me", headers=auth_headers)
     me.raise_for_status()
     author_id = me.json()["data"]["id"]
 
     resp = httpx.post(
         f"https://api.medium.com/v1/users/{author_id}/posts",
-        headers=headers,
+        headers={**auth_headers, "Content-Type": "application/json"},
         json={
             "title": title,
             "contentFormat": "markdown",
