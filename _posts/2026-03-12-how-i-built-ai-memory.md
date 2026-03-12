@@ -138,7 +138,7 @@ I'm not working in a vacuum. [MemGPT](https://arxiv.org/abs/2310.08560), now pro
 
 I needed document storage, vector similarity search, full-text search, and graph edges in a single database that runs embedded with no server process. That last requirement eliminates most options.
 
-Typically this means three or four systems: a document store, Qdrant for vectors, Elasticsearch for full-text, Neo4j for the graph. Coordinating them locally is painful. SurrealDB handles all of them. It runs in embedded mode (`surrealkv://`) with the entire memory system as a single file on disk.
+Typically this means three or four systems: a document store, Qdrant for vectors, Elasticsearch for full-text, Neo4j for the graph. Coordinating them locally is painful. [SurrealDB](https://surrealdb.com) handles all of them. It runs in embedded mode (`surrealkv://`) with the entire memory system as a single file on disk.
 
 Semantic search runs against a `MTREE` vector index with cosine similarity on 384-dim embeddings. Full-text search runs against a `SEARCH` index on the same table, and the two result sets are merged via RRF before re-ranking by trust.
 
