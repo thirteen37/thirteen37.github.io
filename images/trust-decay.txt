@@ -1,0 +1,20 @@
+A line chart showing trust score on the y-axis from 0.0 to 1.0, and time in days on the x-axis from 0 to 365. No chart title. Use a legend only — no direct labels on the curves, and no data point annotations or number labels anywhere on the chart.
+
+A horizontal dashed red line sits at y=0.315, labeled "pruning threshold" with a small inline label near the right edge of the line. No shading or filled regions anywhere on the chart.
+
+Three curves are plotted:
+
+Plot three curves with these legend labels and colors:
+- Label "High confidence, no reinforcement", solid blue
+- Label "Medium confidence, reinforced", solid green
+- Label "Low confidence, no reinforcement", solid orange
+
+Curve data:
+
+Blue curve: starts at 0.9, decays exponentially with a 90-day half-life (0.9 × 0.5^(t/90)). Reaches ~0.45 at day 90, ~0.22 at day 180, crosses the pruning threshold at around day 140, ends at ~0.06 at day 365.
+
+Green curve: starts at 0.7 and decays until day 30 (reaching ~0.59), then jumps vertically to ~0.72, decays again to ~0.60 by day 60, then jumps vertically to ~0.75. After day 60 continues decaying, ending around 0.50 at day 365. Stays above the pruning threshold for the entire chart. Vertical jumps are sharp near-instantaneous rises with no markers or annotations.
+
+Orange curve: follows the formula 0.5 × 0.5^(t/90). Passes through the point (60, 0.315), crossing the pruning threshold there. Continues falling toward zero by day 365.
+
+x-axis label: "time (days)". x-axis tick marks at regular 30-day intervals: 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 365.
