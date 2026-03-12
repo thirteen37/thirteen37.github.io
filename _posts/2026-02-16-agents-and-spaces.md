@@ -141,7 +141,7 @@ atoms carry `confidence` scores and `supports`/`contradicts` references.
 
 Same spaces, same operations, different conventions.
 
-<pre class="mermaid">
+```mermaid
 graph TB
     subgraph CON["Conventions (taught, not enforced)"]
         TL["Task Lists"] ~~~ CH["Channels"] ~~~ CT["Chats"] ~~~ DOC["Documents"]
@@ -164,7 +164,7 @@ graph TB
     style CH fill:#93afc5,color:#333
     style CT fill:#93afc5,color:#333
     style DOC fill:#93afc5,color:#333
-</pre>
+```
 
 An agent that can create other agents and share content stores with them
 can express any coordination pattern (pipelines, fan-out, debates,
@@ -194,7 +194,7 @@ with no role assignment, topology declaration, or workflow step number.
 Spaces, tools, secrets all narrow monotonically. No privilege
 escalation without going back to a coordinator.
 
-<pre class="mermaid">
+```mermaid
 graph TD
     C["Coordinator<br/><small>all tools, all spaces, all secrets</small>"]
     R["Research Agent<br/><small>web tools, research space</small>"]
@@ -212,7 +212,7 @@ graph TD
     style W fill:#6b8cae,color:#fff
     style S1 fill:#93afc5,color:#333
     style S2 fill:#93afc5,color:#333
-</pre>
+```
 
 Every spawn is a trust boundary. Give a research agent web access but no
 PII access, a data diode where information flows one direction. The
@@ -310,7 +310,7 @@ use the space from the space itself.
 **There is no separate messaging primitive.** Everything is content in
 spaces.
 
-<pre class="mermaid">
+```mermaid
 graph LR
     subgraph " "
         direction LR
@@ -326,7 +326,7 @@ graph LR
     style A1 fill:#6b8cae,color:#fff
     style A2 fill:#6b8cae,color:#fff
     style A3 fill:#6b8cae,color:#fff
-</pre>
+```
 
 When a research agent writes findings to a shared space, that _is_ the
 communication. Other agents subscribed to the space see the update and
@@ -351,7 +351,7 @@ interface. TUI writes to a chat space? That agent is a coordinator.
 Webhook writes to a webhook space? Also a coordinator. The topology
 determines it.
 
-<pre class="mermaid">
+```mermaid
 graph LR
     UI["TUI / Web UI"] --> CS(["Chat Space"])
     WH["Webhook"] --> WS(["Webhook Space"])
@@ -375,7 +375,7 @@ graph LR
     style UI fill:#888,color:#fff
     style WH fill:#888,color:#fff
     style CR fill:#888,color:#fff
-</pre>
+```
 
 Coordinators can grant access, share spaces across agent boundaries,
 and manage subagent lifecycles. They share a **coordinator bus** for cross-coordinator communication.
