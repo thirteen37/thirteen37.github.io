@@ -34,15 +34,16 @@ def extract_blocks(body: str) -> tuple[str, list[dict]]:
     """
     blocks = []
 
-    # Extract Mermaid blocks first (raw HTML, must come before table scan)
+    # Extract Mermaid blocks first (raw HTML and fenced, must come before table scan)
     mermaid_pattern = re.compile(
-        r'<pre class="mermaid">\n(.*?)\n</pre>',
+        r'(?:<pre class="mermaid">\n(.*?)\n</pre>|```mermaid\n(.*?)\n```)',
         re.DOTALL,
     )
 
     def replace_mermaid(m):
         idx = len(blocks)
-        blocks.append({"type": "mermaid", "source": m.group(1)})
+        source = m.group(1) if m.group(1) is not None else m.group(2)
+        blocks.append({"type": "mermaid", "source": source})
         return f"__BLOCK_{idx}__"
 
     body = mermaid_pattern.sub(replace_mermaid, body)
